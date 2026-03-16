@@ -1,0 +1,10 @@
+# Local runtime state
+codex-sidecar/codex-home/
+*.log
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db

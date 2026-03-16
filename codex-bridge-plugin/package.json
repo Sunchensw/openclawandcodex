@@ -1,0 +1,13 @@
+{
+  "name": "codex-bridge-plugin",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "description": "Full-proxy Codex bridge plugin for OpenClaw",
+  "license": "MIT"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "codex-bridge-plugin",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "full-proxy",
+          "command-only"
+        ]
+      },
+      "sidecarUrl": {
+        "type": "string"
+      },
+      "requestTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000
+      },
+      "interceptChannels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "bypassPrefixes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "replyPrefix": {
+        "type": "string"
+      },
+      "includeMetadata": {
+        "type": "boolean"
+      }
+    }
+  }
+}
