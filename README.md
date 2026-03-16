@@ -1,17 +1,33 @@
-# OpenClaw Codex Bridge
+﻿# OpenClaw Codex Bridge
 
-`OpenClaw Codex Bridge` 是一个面向 Windows 的轻量桥接方案，用来让 OpenClaw 把用户任务转发给本地 Codex 执行，再把最终结果返回给 OpenClaw。
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-blue.svg)](./README.md)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-Bridge-black.svg)](./README.md)
 
-这个仓库包含两个部分：
+一个面向 Windows 的 OpenClaw 与 Codex 桥接器。
+它让 OpenClaw 继续负责消息入口、会话和回传，而把真正的任务执行交给本地 Codex。
 
-- `codex-bridge-plugin`：OpenClaw 插件，负责接收消息、提供 `/codex` 命令，并在需要时把消息代理给 Codex
-- `codex-sidecar`：本地 HTTP 服务，负责调用 `codex exec`，并把最终用户可见回复返回给 OpenClaw
+## 项目简介
 
-这个项目的目标是：
+这个仓库解决的是一个很实际的问题：
 
-- 不改动你现有的 OpenClaw 模型配置
-- 让 OpenClaw 继续作为消息入口
-- 让 Codex 成为实际执行任务的核心
+- 不改动现有 OpenClaw 模型配置
+- 保留 OpenClaw 的接入方式，比如 Web UI 或企业微信
+- 让 Codex 负责代码生成、项目整理、命令执行和复杂任务处理
+- 最终结果仍然回到 OpenClaw 会话里
+
+仓库由两个核心模块组成：
+
+- `codex-bridge-plugin`：OpenClaw 插件，负责接收消息、注册命令、转发请求
+- `codex-sidecar`：本地 HTTP 服务，负责调用 `codex.exe exec` 并返回最终回复
+
+## 项目亮点
+
+- 不需要改你的 OpenClaw 主模型配置
+- 支持显式命令 `/codex <任务>`
+- 支持基于 hook 的全量代理模式
+- 使用本机真实的 Codex 登录状态
+- 结构简单，适合二次开发和本地部署
 
 ## 项目架构
 
@@ -42,6 +58,9 @@ codex-sidecar
 ```text
 .
 ├── README.md
+├── LICENSE
+├── RELEASE_NOTES.md
+├── .gitignore
 ├── codex-bridge-plugin
 │   ├── index.js
 │   ├── openclaw.plugin.json
@@ -54,53 +73,51 @@ codex-sidecar
     └── README.md
 ```
 
-## 组件说明
+## 工作原理
 
 ### `codex-bridge-plugin`
 
-这个插件主要负责：
+插件主要负责：
 
-- 注册 `/codex <任务>` 命令，用于显式把任务交给 Codex
+- 注册 `/codex <任务>` 命令，用于显式委托 Codex
 - 注册 `/codex-bridge-status` 命令，用于查看桥接状态
 - 监听 `message:received`
-- 把符合条件的消息转发给 sidecar
-- 把 sidecar 返回的结果重新注入 OpenClaw 消息流
+- 把符合条件的消息转发到 sidecar
+- 把 sidecar 返回的结果重新写回 OpenClaw 消息流
 
-当前插件支持的行为：
+支持的行为包括：
 
 - `full-proxy`：尽量代理普通入站消息
-- `command-only`：只通过 `/codex` 命令调用
-- 对短时间内的重复消息做去重
-- 对 `/help`、`/status`、`/model` 等命令做绕过，不转发给 Codex
+- `command-only`：只通过 `/codex` 触发
+- 短时间消息去重
+- 绕过 `/help`、`/status`、`/model` 等命令
 
 ### `codex-sidecar`
 
-这是一个轻量的 Node.js HTTP 服务，主要负责：
+sidecar 是一个轻量的 Node.js HTTP 服务，负责：
 
 - 监听 `127.0.0.1:3790`
-- 接收 `POST /run` 请求
-- 根据 OpenClaw 传入的消息元数据构造 Codex 提示词
+- 接收 `POST /run`
+- 根据 OpenClaw 传入的上下文构造 Codex 提示词
 - 调用本地 `codex.exe exec`
-- 通过 `--output-last-message` 捕获最终回复
+- 使用 `--output-last-message` 提取最终回复
 - 把结果以 JSON 返回给 OpenClaw
 
-当前执行策略：
+当前默认执行配置：
 
-- 可执行文件：`%USERPROFILE%\.codex\.sandbox-bin\codex.exe`
-- Codex 登录目录：`%USERPROFILE%\.codex`
+- Codex 可执行文件：`%USERPROFILE%\.codex\.sandbox-bin\codex.exe`
+- Codex Home：`%USERPROFILE%\.codex`
+- 工作目录：`D:\openclaw`
 - 沙箱模式：`workspace-write`
 
-## 运行前提
+## 快速开始
 
-在使用这个项目之前，建议确保：
+### 环境要求
 
-- 你在 Windows 环境中运行
-- 本机已经安装 Node.js
-- 本机已经安装并可使用 OpenClaw
-- 本机已经安装 Codex
-- Codex 已在这台机器上完成登录
-
-## 安装与配置
+- Windows
+- Node.js
+- 已安装并可运行的 OpenClaw
+- 已安装并登录的 Codex
 
 ### 1. 启动 sidecar
 
@@ -109,23 +126,15 @@ cd D:\openclaw\codex-sidecar
 .\start-sidecar.cmd
 ```
 
-你可以用下面的命令检查 sidecar 是否正常：
+检查是否启动成功：
 
 ```powershell
 Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 ```
 
-正常情况下返回的 JSON 里会包含：
-
-- `adapter: "codex-exec"`
-- 本地 Codex 可执行文件路径
-- 当前使用的 Codex Home 路径
-
 ### 2. 在 OpenClaw 中注册插件
 
-把这个插件以本地 `path` 安装方式加入 OpenClaw 配置，并启用它。
-
-配置示例：
+把插件以本地 `path` 安装方式加入 OpenClaw 配置，并启用：
 
 ```json
 {
@@ -153,23 +162,17 @@ Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 }
 ```
 
-修改完成后，重启 OpenClaw Gateway 即可。
+修改完成后，重启 OpenClaw Gateway。
 
 ## 使用方式
 
-### 方式一：显式调用 Codex
-
-这是当前最稳定、最推荐的方式：
+### 显式调用 Codex
 
 ```text
 /codex 帮我整理这个项目的目录结构
 ```
 
-### 方式二：自动代理普通消息
-
-如果插件配置为 `full-proxy`，并且消息通道符合配置条件，普通入站消息也可以自动转发给 Codex。
-
-是否能完全覆盖普通消息，还取决于 OpenClaw 当前版本对 hook 的实际执行行为。
+这是当前最稳定的调用方式。
 
 ### 查看桥接状态
 
@@ -177,15 +180,15 @@ Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 /codex-bridge-status
 ```
 
-这个命令会从 OpenClaw 内部读取 sidecar 状态并返回结果。
+### 自动代理普通消息
+
+如果插件配置为 `full-proxy`，并且消息通道符合配置条件，普通入站消息也会尽量自动转发给 Codex。
 
 ## 接口说明
 
 ### `GET /health`
 
-用于检查 sidecar 当前状态。
-
-返回示例：
+返回当前 sidecar 状态：
 
 ```json
 {
@@ -222,33 +225,39 @@ Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 }
 ```
 
-## 当前已验证内容
+## 当前已验证状态
 
-这个仓库目前已经在本机完成了这些验证：
+这个仓库目前已经完成以下验证：
 
-- sidecar 的健康检查返回 `200 OK`
-- `/run` 能成功返回 Codex 的执行结果
-- sidecar 使用的是本机真实的 Codex 登录状态 `%USERPROFILE%\.codex`
+- sidecar 健康检查返回 `200 OK`
+- `/run` 能成功返回 Codex 执行结果
+- sidecar 使用的是本机真实 Codex 登录状态 `%USERPROFILE%\.codex`
+- 本地桥接链路已经跑通
 
 ## 当前限制
 
-在上传和继续迭代前，建议你知道这些限制：
+- 依赖本机已安装并登录好的 Codex
+- 如果 Codex 后端网络异常，sidecar 会直接返回底层错误
+- `full-proxy` 属于尽力而为，最终行为取决于 OpenClaw hook 机制
+- 某些环境下要让 sidecar 稳定后台常驻，可能需要额外权限或服务化处理
 
-- 这个项目依赖本机已经安装并登录好的 Codex
-- 如果 Codex 后端网络异常，sidecar 会直接把底层错误返回出来
-- `full-proxy` 是尽力而为，不保证在所有 OpenClaw 版本里都完全一致
-- 某些环境下，要让 sidecar 稳定后台常驻，可能需要额外权限或服务化处理
+## 适合的使用场景
+
+- 希望通过 OpenClaw 统一入口来调用 Codex
+- 希望保留企业微信或 Web UI 接入方式
+- 希望把复杂任务转发给更强的本地执行代理
+- 希望基于现有 OpenClaw 环境做二次开发
 
 ## 开发说明
 
-- 这个仓库故意保持得比较小，只关注“OpenClaw 到 Codex 的桥接”
-- `codex-sidecar/server.mjs` 是核心执行边界
-- `codex-bridge-plugin/index.js` 是核心路由边界
-- 当前以手工测试和联调验证为主
+- 核心执行边界在 `codex-sidecar/server.mjs`
+- 核心消息路由边界在 `codex-bridge-plugin/index.js`
+- 当前以手工联调和本地冒烟测试为主
 
-## 后续可继续增强的方向
+## 版本说明
 
-- 为 sidecar 增加真正的后台服务包装
-- 增加结构化日志，方便排查代理链路问题
-- 增加请求和响应落盘，便于调试
-- 增加 `/health` 和 `/run` 的自动化冒烟测试
+当前仓库附带一份发布说明，请查看 [RELEASE_NOTES.md](./RELEASE_NOTES.md)。
+
+## License
+
+本项目采用 [MIT License](./LICENSE)。

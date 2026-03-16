@@ -1,10 +1,33 @@
+# Git
+.git/
+
 # Local runtime state
 codex-sidecar/codex-home/
+codex-sidecar/*.log
 *.log
+*.tmp
+*.temp
 
 # Node
 node_modules/
+.npm/
 
-# OS / editor
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# Misc
+coverage/
+dist/
+out/
