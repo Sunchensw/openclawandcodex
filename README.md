@@ -1,4 +1,4 @@
-﻿# OpenClaw Codex Bridge
+# OpenClaw Codex Bridge
 
 `OpenClaw Codex Bridge` 是一个面向 Windows 的轻量桥接方案，用来让 OpenClaw 把用户任务转发给本地 Codex 执行，再把最终结果返回给 OpenClaw。
 
@@ -86,8 +86,8 @@ codex-sidecar
 
 当前执行策略：
 
-- 可执行文件：`%USERPROFILE%\\.codex\\.sandbox-bin\\codex.exe`
-- Codex 登录目录：`%USERPROFILE%\\.codex`
+- 可执行文件：`%USERPROFILE%\.codex\.sandbox-bin\codex.exe`
+- Codex 登录目录：`%USERPROFILE%\.codex`
 - 沙箱模式：`workspace-write`
 
 ## 运行前提
@@ -228,7 +228,7 @@ Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 
 - sidecar 的健康检查返回 `200 OK`
 - `/run` 能成功返回 Codex 的执行结果
-- sidecar 使用的是本机真实的 Codex 登录状态 `%USERPROFILE%\\.codex`
+- sidecar 使用的是本机真实的 Codex 登录状态 `%USERPROFILE%\.codex`
 
 ## 当前限制
 
@@ -242,8 +242,8 @@ Invoke-WebRequest -Uri http://127.0.0.1:3790/health -UseBasicParsing
 ## 开发说明
 
 - 这个仓库故意保持得比较小，只关注“OpenClaw 到 Codex 的桥接”
-- [server.mjs](D:\openclaw\codex-sidecar\server.mjs) 是核心执行边界
-- [index.js](D:\openclaw\codex-bridge-plugin\index.js) 是核心路由边界
+- `codex-sidecar/server.mjs` 是核心执行边界
+- `codex-bridge-plugin/index.js` 是核心路由边界
 - 当前以手工测试和联调验证为主
 
 ## 后续可继续增强的方向
